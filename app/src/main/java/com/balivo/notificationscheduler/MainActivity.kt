@@ -18,6 +18,7 @@ class MainActivity : AppCompatActivity() {
     lateinit var mDeviceIdle : Switch
     lateinit var mDeviceCharging : Switch
     var mSeekBar :SeekBar? = null
+    lateinit var mPeriodicSwitch : Switch
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,6 +32,8 @@ class MainActivity : AppCompatActivity() {
         var label = findViewById(R.id.seekBarLabel) as TextView
         var mSeekBarProgress = findViewById(R.id.seekBarProgress) as TextView
 
+        mPeriodicSwitch = findViewById(R.id.periodicSwitch) as Switch
+
         mSeekBar!!.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
 
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
@@ -40,16 +43,24 @@ class MainActivity : AppCompatActivity() {
                     mSeekBarProgress.text = "Not Set"
                 }
             }
-
             override fun onStartTrackingTouch(seekBar: SeekBar?) {
-
             }
-
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
-
             }
-
         })
+
+        mPeriodicSwitch.setOnCheckedChangeListener(
+                object: CompoundButton.OnCheckedChangeListener{
+
+                    override fun onCheckedChanged(buttonView: CompoundButton?, isChecked: Boolean) {
+                        if (isChecked) {
+                            label.text = "Periodic Interval: "
+                        } else {
+                            label.text = "Override Deadline: "
+                        }
+                    }
+                }
+        )
     }
 
     fun scheduleJob(view:View) {
@@ -83,15 +94,24 @@ class MainActivity : AppCompatActivity() {
         builder.setRequiresDeviceIdle(mDeviceIdle.isChecked)
         builder.setRequiresCharging(mDeviceCharging.isChecked)
 
-        if (seekBarSet) {
-            builder.setOverrideDeadline((seekBarInteger * 1000).toLong())
+       if (mPeriodicSwitch.isChecked) {
+            if (seekBarSet){
+                builder.setPeriodic(seekBarInteger * 1000.toLong())
+            }else {
+                Toast.makeText(this,
+                        "Please set a periodic interval", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            if (seekBarSet){
+                builder.setOverrideDeadline(seekBarInteger * 1000.toLong())
+            }
         }
 
         val constraintSet = (selectedNetworkOption != JobInfo.NETWORK_TYPE_NONE || mDeviceCharging.isChecked
                 || mDeviceIdle.isChecked || seekBarSet)
 
         if(constraintSet) {
-            val myJobInfo = builder.build()
+            val myJobInfo = builder.build() as JobInfo
             mScheduler!!.schedule(myJobInfo)
             Toast.makeText(this, "Job was scheduled!", Toast.LENGTH_LONG).show()
 
